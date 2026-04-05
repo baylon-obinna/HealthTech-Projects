@@ -55,7 +55,7 @@ drug-expiry-dashboard/
 ### 1. Clone the repository
 
 ```bash
-git clone ""
+git clone "https://github.com/baylon-obinna/HealthTech-Projects.git"
 cd Supply_chain
 ```
 

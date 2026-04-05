@@ -4,12 +4,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import pandas as pd
+import os
 from datetime import datetime
 
 # DATA CLEANING
 
 # ── 1. LOAD THE DATA ──────────────────────────────────────────────────────────
-df = pd.read_excel("pharmacy_inventory.xlsx")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+df = pd.read_excel(os.path.join(BASE_DIR, "pharmacy_inventory.xlsx"))
 
 # ── 2. FIX DATE FORMAT ────────────────────────────────────────────────────────
 df["expiry_date"]   = pd.to_datetime(df["expiry_date"])
