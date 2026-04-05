@@ -433,7 +433,7 @@ styled = (table_df[display_cols]
               "location": "Location", "supplier": "Supplier",
           })
           .style
-          .applymap(color_status, subset=["Status"])
+          .map(color_status, subset=["Status"])
           .format({"Value (₦)": "₦{:,.0f}", "Expiry Date": lambda x: x.strftime("%d %b %Y") if pd.notna(x) else ""})
          )
 
