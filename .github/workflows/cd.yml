@@ -12,6 +12,9 @@ jobs:
   verify-live-app:
     name: Verify Streamlit App is Live
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: /Supply_chain
 
     env:
       APP_URL: ${{ secrets.STREAMLIT_APP_URL }}

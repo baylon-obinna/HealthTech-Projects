@@ -12,6 +12,9 @@ jobs:
   lint:
     name: Lint Check
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: /Supply_chain
 
     steps:
       - uses: actions/checkout@v4
@@ -29,13 +32,15 @@ jobs:
             --max-line-length=100 \
             --ignore=E501,W503 \
             --statistics
-            working-directory= Supply_chain
 
   # ── JOB 2: Install deps and run the data pipeline ────────────────────────
   validate:
     name: Validate Data Pipeline
     runs-on: ubuntu-latest
     needs: lint
+    defaults:
+      run:
+        working-directory: /Supply_chain
 
     steps:
       - uses: actions/checkout@v4
@@ -95,13 +100,16 @@ jobs:
           print(f"✅ Pipeline valid — {len(out)} rows")
           print(out["status"].value_counts().to_string())
           PYEOF
-           working-directory= Supply_chain
+         
 
   # ── JOB 3: Smoke-test — Streamlit app starts and serves health endpoint ───
   smoke-test:
     name: Streamlit Smoke Test
     runs-on: ubuntu-latest
     needs: validate
+    defaults:
+      run:
+        working-directory: /Supply_chain
 
     steps:
       - uses: actions/checkout@v4
@@ -139,4 +147,3 @@ jobs:
           echo "❌ App did not start in time"
           kill $APP_PID 2>/dev/null || true
           exit 1
-           working-directory= Supply_chain
