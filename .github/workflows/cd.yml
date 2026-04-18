@@ -33,7 +33,7 @@ jobs:
 
       - name: Check app responds with HTTP 200
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L "$APP_URL")
           echo "HTTP status: $STATUS"
           if [ "$STATUS" -ne 200 ]; then
             echo "❌ App returned HTTP $STATUS — deployment may have failed"
@@ -43,7 +43,7 @@ jobs:
 
       - name: Check app health endpoint
         run: |
-          HEALTH=$(curl -sf "$APP_URL/_stcore/health" || echo "unreachable")
+          HEALTH=$(curl -sf -L "$APP_URL/_stcore/health" || echo "unreachable")
           echo "Health response: $HEALTH"
           if echo "$HEALTH" | grep -q "ok"; then
             echo "✅ Health endpoint confirmed OK"

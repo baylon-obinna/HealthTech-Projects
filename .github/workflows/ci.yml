@@ -27,11 +27,7 @@ jobs:
         run: pip install flake8
 
       - name: Run flake8 on dashboard.py
-        run: |
-          flake8 dashboard.py \
-            --max-line-length=100 \
-            --ignore=E124,E127,E221,E231,E241,E272,E302,E305,E306,E501,E701,W292,W503
-            --statistics
+        run: flake8 dashboard.py --max-line-length=100 --ignore=E124,E127,E221,E231,E241,E272,E302,E305,E306,E501,E701,W292,W503 --statistics
 
   # ── JOB 2: Install deps and run the data pipeline ────────────────────────
   validate:
