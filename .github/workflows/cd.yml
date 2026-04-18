@@ -1,4 +1,4 @@
-aname: CD — Verify Live Deployment
+name: CD — Verify Live Deployment
 
 on:
   push:
