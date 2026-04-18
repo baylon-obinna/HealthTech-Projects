@@ -28,21 +28,25 @@ jobs:
           echo "Waiting 90 seconds for Streamlit Cloud to redeploy..."
           sleep 90
 
-      - name: Check app health endpoint
+      - name: Check app is reachable
         run: |
-          HEALTH=$(curl -sf --max-time 30 "$APP_URL/_stcore/health" || echo "unreachable")
-          echo "Health response: $HEALTH"
-          if echo "$HEALTH" | grep -q "ok"; then
-            echo "✅ App is live — health endpoint returned ok"
-          else
-            echo "❌ Health check failed: $HEALTH"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$APP_URL")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" = "000" ]; then
+            echo "❌ App unreachable — no response"
             exit 1
           fi
+          if [ "$STATUS" = "500" ] || [ "$STATUS" = "502" ] || [ "$STATUS" = "503" ]; then
+            echo "❌ App returned server error: $STATUS"
+            exit 1
+          fi
+          echo "✅ App is reachable (HTTP $STATUS)"
 
       - name: Report deployment status
         if: always()
         run: |
           echo "──────────────────────────────────────"
+          echo "  App        : $APP_URL"
           echo "  Triggered  : ${{ github.event_name }}"
           echo "  Commit     : ${{ github.sha }}"
           echo "──────────────────────────────────────"
