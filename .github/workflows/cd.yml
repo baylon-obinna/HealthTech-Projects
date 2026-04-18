@@ -30,7 +30,7 @@ jobs:
 
       - name: Check app responds with HTTP 200
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 --max-redirs 10 -L "$APP_URL")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$APP_URL")
           echo "HTTP status: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "❌ App returned HTTP $STATUS — deployment may have failed"
@@ -40,7 +40,7 @@ jobs:
 
       - name: Check app health endpoint
         run: |
-          HEALTH=$(curl -sf --max-time 30 --max-redirs 10 -L "$APP_URL/_stcore/health" || echo "unreachable")
+          HEALTH=$(curl -sf --max-time 30 "$APP_URL/_stcore/health" || echo "unreachable")
           echo "Health response: $HEALTH"
           if echo "$HEALTH" | grep -q "ok"; then
             echo "✅ Health endpoint confirmed OK"
