@@ -1,4 +1,4 @@
-name: CD — Verify Live Deployment
+aname: CD — Verify Live Deployment
 
 on:
   push:
@@ -28,24 +28,15 @@ jobs:
           echo "Waiting 90 seconds for Streamlit Cloud to redeploy..."
           sleep 90
 
-      - name: Check app responds with HTTP 200
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$APP_URL")
-          echo "HTTP status: $STATUS"
-          if [ "$STATUS" != "200" ]; then
-            echo "❌ App returned HTTP $STATUS — deployment may have failed"
-            exit 1
-          fi
-          echo "✅ App is live and returning HTTP 200"
-
       - name: Check app health endpoint
         run: |
           HEALTH=$(curl -sf --max-time 30 "$APP_URL/_stcore/health" || echo "unreachable")
           echo "Health response: $HEALTH"
           if echo "$HEALTH" | grep -q "ok"; then
-            echo "✅ Health endpoint confirmed OK"
+            echo "✅ App is live — health endpoint returned ok"
           else
-            echo "⚠️  Health endpoint did not return ok — may still be booting"
+            echo "❌ Health check failed: $HEALTH"
+            exit 1
           fi
 
       - name: Report deployment status
