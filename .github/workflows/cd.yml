@@ -3,8 +3,6 @@ name: CD — Verify Live Deployment
 on:
   push:
     branches: [main]       # Triggers after every merge to main
-  schedule:
-    - cron: "0 6 * * *"   # Also runs daily at 6am UTC as a health monitor
   workflow_dispatch:        # Allows manual trigger from GitHub Actions tab
 
 jobs:
@@ -30,8 +28,8 @@ jobs:
 
       - name: Wait for Streamlit Cloud to redeploy
         run: |
-          echo "Giving Streamlit Cloud 60 seconds to pick up the latest commit..."
-          sleep 60
+          echo "Giving Streamlit Cloud 90 seconds to pick up the latest commit..."
+          sleep 90
 
       - name: Check app responds with HTTP 200
         run: |

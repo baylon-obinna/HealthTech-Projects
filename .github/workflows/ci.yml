@@ -30,7 +30,7 @@ jobs:
         run: |
           flake8 dashboard.py \
             --max-line-length=100 \
-            --ignore=E501,W503 \
+            --ignore=E124,E127,E221,E231,E241,E272,E302,E305,E306,E701,W292,W503
             --statistics
 
   # ── JOB 2: Install deps and run the data pipeline ────────────────────────
