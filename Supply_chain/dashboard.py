@@ -54,13 +54,13 @@ print(f"\n📦 Total SKUs (batches):     {len(df)}")
 print(f"💊 Unique drugs:             {df['drug_name'].nunique()}")
 print(f"🏪 Locations tracked:        {df['location'].nunique()}")
 
-print(f"\n📊 STATUS BREAKDOWN")
+print("\n📊 STATUS BREAKDOWN")
 print("-" * 35)
 status_counts = df["status"].value_counts()
 for status, count in status_counts.items():
     print(f"   {status:<12} {count:>4} batches")
 
-print(f"\n💰 STOCK VALUE AT RISK")
+print("\n💰 STOCK VALUE AT RISK")
 print("-" * 35)
 print(f"   Expired + Critical stock:  ₦{value_at_risk:>12,.2f}")
 total_value = df["total_value_ngn"].sum()
@@ -68,7 +68,7 @@ pct = (value_at_risk / total_value) * 100
 print(f"   Total inventory value:     ₦{total_value:>12,.2f}")
 print(f"   % of inventory at risk:    {pct:.1f}%")
 
-print(f"\n🏷️  TOP 5 DRUGS MOST AT RISK (by value)")
+print("\n🏷️  TOP 5 DRUGS MOST AT RISK (by value)")
 print("-" * 35)
 top_risk = (
     at_risk.groupby("drug_name")["total_value_ngn"]
@@ -79,7 +79,7 @@ top_risk = (
 for drug, val in top_risk.items():
     print(f"   {drug[:35]:<35}  ₦{val:>10,.0f}")
 
-print(f"\n📍 RISK BY LOCATION")
+print("\n📍 RISK BY LOCATION")
 print("-" * 35)
 loc_risk = (
     at_risk.groupby("location")["total_value_ngn"]
