@@ -5,7 +5,7 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# DATA CLEANING
+# DATA CLEANING ##
 
 # ── 1. LOAD THE DATA ──────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
