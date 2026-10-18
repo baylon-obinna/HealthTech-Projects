@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-app
+  namespace: todo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-app
+  template:
+    metadata:
+      labels:
+        app: todo-app
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done"]
+      containers:
+        - name: todo-app
+          image: todo-app:local
+          imagePullPolicy: IfNotPresent   # image is built straight into minikube
+          ports:
+            - containerPort: 8080
+          env:
+            # POSTGRES_DB must be defined before DB_URL so $(POSTGRES_DB) expands
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef: { name: todo-db, key: POSTGRES_DB }
+            - name: DB_URL
+              value: jdbc:postgresql://postgres:5432/$(POSTGRES_DB)
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef: { name: todo-db, key: POSTGRES_USER }
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: todo-db, key: POSTGRES_PASSWORD }
+          readinessProbe:
+            httpGet: { path: /api/todos, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: 8080 }
+            initialDelaySeconds: 40
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 200m, memory: 384Mi }
+            limits: { memory: 768Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-app
+  namespace: todo
+spec:
+  type: NodePort
+  selector:
+    app: todo-app
+  ports:
+    - port: 8080
+      targetPort: 8080
