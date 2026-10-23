@@ -1,0 +1,85 @@
+# 1. DEPLOYMENT: runs 2 copies of your app, spread over the 2 servers
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-app
+  namespace: todo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: todo-app
+  template:
+    metadata:
+      labels:
+        app: todo-app
+    spec:
+      containers:
+        - name: todo-app
+          image: <ECR_URL>:<TAG>            # from: terraform output ecr_repository_url
+          ports:
+            - containerPort: 8080           # must match var.container_port
+          envFrom:
+            - secretRef:
+                name: db-credentials        # injects the database URL, user and password
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 768Mi                 # JVMs get killed if they exceed this; raise it if you see OOMKilled
+          readinessProbe:                   # traffic is only sent once this passes
+            httpGet:
+              path: /                       # use /actuator/health if you have Spring Actuator
+              port: 8080
+            initialDelaySeconds: 30         # Java takes a while to start
+            periodSeconds: 10
+          livenessProbe:                    # restarts the container if it hangs
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+# 2. SERVICE: a stable internal address in front of the app copies
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-app
+  namespace: todo
+spec:
+  type: ClusterIP
+  selector:
+    app: todo-app
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+# 3. INGRESS: tells the load balancer controller to build an internet-facing ALB
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: todo-app
+  namespace: todo
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/security-groups: <ALB_SG_ID>   # from: terraform output alb_security_group_id
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /            # same path as the readiness probe
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: todo-app
+                port:
+                  number: 80
