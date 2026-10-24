@@ -3,6 +3,7 @@ name: CD — Verify Live Deployment
 on:
   push:
     branches: [main]
+    paths: ["Supply_chain/**"]
   workflow_dispatch:
 
 jobs:

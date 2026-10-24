@@ -1,0 +1,158 @@
+name: CI/CD — Todo App (check, build, scan, verify)
+
+#   1. code-check     compile + unit tests, lint the Dockerfile
+#   2. build-and-scan build the Docker image, scan it for known vulnerabilities
+#   3. verify-api     start the image next to a throwaway Postgres on the runner,
+#                     call the API, then throw everything away
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+       - "todo-app/**"          
+
+  pull_request:
+    branches: [main]
+    paths:
+      - "todo-app/**"
+
+permissions:
+  contents: read                   # the pipeline can read the repo and nothing else
+
+concurrency:
+  group: todo-app-${{ github.ref }}
+  cancel-in-progress: true         # a newer commit cancels the older run
+
+env:
+  IMAGE: todo-app:ci
+  JAVA_VERSION: "21"               
+
+jobs:
+
+  # ── STAGE 1: code check ──────────────────────────────────────────────────
+  code-check:
+    name: Code check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      # Compiles the code and runs the unit tests.
+      # Gradle project? Use:  ./gradlew build   (and set cache: gradle above)
+      - name: Compile and run unit tests
+        run: mvn -B -ntp verify
+
+      # Only fails on real errors, not style warnings
+      - name: Lint the Dockerfile
+        run: docker run --rm -i hadolint/hadolint:v2.12.0 hadolint --failure-threshold error - < Dockerfile
+
+  # ── STAGE 2: build the image and scan it ─────────────────────────────────
+  build-and-scan:
+    name: Build and scan image
+    runs-on: ubuntu-latest
+    needs: code-check
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --pull -t "$IMAGE" .
+
+      # Trivy runs from its own container image, so there is no extra third-party action to trust.
+      - name: Scan image for vulnerabilities
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.58.1 image \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1 \
+              "$IMAGE"
+
+      # Hand the exact image that was scanned to the next stage
+      - name: Save image
+        run: docker save "$IMAGE" | gzip > todo-app-image.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: todo-app-image
+          path: todo-app-image.tar.gz
+          retention-days: 1
+          compression-level: 0
+
+  # ── STAGE 3: run it briefly and check the API ────────────────────────────
+  verify-api:
+    name: Verify API (short-lived local run)
+    runs-on: ubuntu-latest
+    needs: build-and-scan
+
+    env:
+      BASE_URL: http://localhost:8080
+      HEALTH_PATH: /                       # use /actuator/health if you have Spring Actuator
+      DB_PASSWORD: ci-only-password        # throwaway value for a database that lives for minutes
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: todo
+          POSTGRES_USER: todo
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U todo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: todo-app-image
+
+      - name: Load image
+        run: docker load < todo-app-image.tar.gz
+
+      - name: Start the app
+        run: |
+          docker run -d --name todo-app --network host \
+            -e SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/todo \
+            -e SPRING_DATASOURCE_USERNAME=todo \
+            -e SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD" \
+            -e SPRING_JPA_HIBERNATE_DDL_AUTO=update \
+            "$IMAGE"
+
+      # "Up" means the server answers with anything below HTTP 500
+      - name: Wait for the app to answer
+        run: |
+          for i in $(seq 1 40); do
+            if [ -z "$(docker ps -q -f name=todo-app)" ]; then
+              echo "❌ Container exited early"; exit 1
+            fi
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$BASE_URL$HEALTH_PATH" || true)
+            if [ "$CODE" != "000" ] && [ "$CODE" -lt 500 ]; then
+              echo "✅ App is answering (HTTP $CODE)"; exit 0
+            fi
+            echo "Waiting... ($i/40)"; sleep 3
+          done
+          echo "❌ App did not come up in time"; exit 1
+
+      - name: Call the API (create, read, update, delete)
+        run: bash scripts/smoke-test.sh
+
+      - name: Show app logs if anything failed
+        if: failure()
+        run: docker logs todo-app
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f todo-app || true

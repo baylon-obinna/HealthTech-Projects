@@ -3,8 +3,10 @@ name: CI — Validate Dashboard
 on:
   push:
     branches: [main, dev]
+    paths: ["Supply_chain/**"]
   pull_request:
     branches: [main]
+    paths: ["Supply_chain/**"]
 
 jobs:
 
