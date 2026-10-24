@@ -162,7 +162,9 @@ jobs:
 
       - name: Show app logs if anything failed
         if: failure()
-        run: docker logs todo-app
+        run: |
+          docker ps -a
+          docker logs todo-app 2>&1 || echo "(no todo-app container: the failure happened before it started, so look at the earlier red step)"
 
       - name: Clean up
         if: always()
