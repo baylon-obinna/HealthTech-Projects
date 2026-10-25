@@ -90,7 +90,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: todo-app-image
-          path: todo-app-image.tar.gz
+          path: todo-app/todo-app/todo-app-image.tar.gz
+          if-no-files-found: error
           retention-days: 1
           compression-level: 0
 
