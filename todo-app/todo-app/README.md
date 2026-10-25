@@ -21,7 +21,7 @@ Override DB settings with env vars: `DB_URL`, `DB_USER`, `DB_PASSWORD`.
 | PATCH  | /api/todos/{id}/toggle    | Flip completed                       |
 | DELETE | /api/todos/{id}           | Delete                               |
 
-## Try it
+## Try these endpoints
 ```bash
 curl -X POST localhost:8080/api/todos -H "Content-Type: application/json" \
   -d '{"title":"Write report","description":"Q4 numbers"}'
