@@ -132,7 +132,7 @@ jobs:
           name: todo-app-image
 
       - name: Load image
-        run: docker load < todo-app-image.tar.gz
+        run: docker load < "$GITHUB_WORKSPACE/todo-app-image.tar.gz"
 
       - name: Start the app
         run: |
